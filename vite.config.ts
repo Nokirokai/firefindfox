@@ -3,7 +3,24 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
-import siteConfiguration from './.figma/make/site.json'
+// Inlined from the former ./.figma/make/site.json (file wasn't present at build time)
+const siteConfiguration = {
+  title: "FirefindFox",
+  description: "FireFindFox helps users quickly locate fire safety resources and information, enhancing emergency preparedness for individuals and communities.",
+  robots: {
+    index: false
+  },
+  icons: {
+    icon: "/.figma/make/favicon.png"
+  },
+  openGraph: {
+    image: "/.figma/make/social-image.png"
+  },
+  accessibility: {
+    addBypassLinks: false,
+    ignoreReducedMotion: false
+  }
+}
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
