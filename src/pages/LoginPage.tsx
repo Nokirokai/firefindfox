@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { LogIn, AlertCircle, Eye, EyeOff, MailCheck } from 'lucide-react'
 import type { Page } from '../types'
 import { MONO } from '../types'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,27 +13,75 @@ export default function LoginPage({ setPage }: { setPage: (p: Page) => void }) {
   const [errorMsg, setErrorMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [confirmSent, setConfirmSent] = useState(false)
 
   const { signIn, signUp } = useAuth()
 
   async function handleSubmit() {
     setErrorMsg('')
+
+    if (!email.trim() || !password) {
+      setErrorMsg('Please enter your email and password.')
+      return
+    }
+
     setLoading(true)
 
-    let error: string | null = null
     if (mode === 'login') {
-      error = await signIn(email, password)
-    } else {
-      if (!name.trim()) { setErrorMsg('Please enter your full name.'); setLoading(false); return }
-      error = await signUp(email, password, name)
+      const error = await signIn(email, password)
+      setLoading(false)
+      if (error) setErrorMsg(error)
+      else setPage('home')
+      return
     }
 
+    if (!name.trim()) { setErrorMsg('Please enter your full name.'); setLoading(false); return }
+
+    const result = await signUp(email, password, name)
     setLoading(false)
-    if (error) {
-      setErrorMsg(error)
-    } else {
-      setPage('home')
+
+    if (result.error) { setErrorMsg(result.error); return }
+    if (result.alreadyRegistered) {
+      setErrorMsg('That email is already registered. Try signing in instead.')
+      setMode('login')
+      return
     }
+    // Only go home when a real session exists — with email confirmation on,
+    // signing up does not sign you in, so show the "check your inbox" screen.
+    if (result.signedIn) setPage('home')
+    else setConfirmSent(true)
+  }
+
+  if (confirmSent) {
+    return (
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 bg-[#F5F5F5]">
+        <div className="bg-white border border-[#E5E5E5] p-8 w-full max-w-sm text-center">
+          <div className="w-12 h-12 bg-[#0A0A0A] text-white flex items-center justify-center mx-auto mb-4">
+            <MailCheck size={20} />
+          </div>
+          <h2 className="text-xl font-bold text-[#0A0A0A] mb-2" style={{ fontFamily: MONO }}>
+            Check your inbox
+          </h2>
+          <p className="text-sm text-[#737373] mb-1">
+            We sent a confirmation link to
+          </p>
+          <p className="text-sm font-semibold text-[#0A0A0A] break-all mb-4" style={{ fontFamily: MONO }}>
+            {email.trim().toLowerCase()}
+          </p>
+          <p className="text-xs text-[#737373] mb-6">
+            Open it to activate your account, then sign in. Check spam if it does not arrive
+            within a few minutes.
+          </p>
+          <button
+            onClick={() => { setConfirmSent(false); setMode('login'); setPassword(''); setErrorMsg('') }}
+            className="w-full bg-[#0A0A0A] text-white text-sm py-3 hover:bg-[#737373] transition-colors"
+            style={{ fontFamily: MONO }}
+          >
+            Back to sign in →
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -96,6 +144,9 @@ export default function LoginPage({ setPage }: { setPage: (p: Page) => void }) {
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
+          {mode === 'signup' && (
+            <p className="text-xs text-[#737373]">At least 6 characters.</p>
+          )}
           <button
             onClick={handleSubmit}
             disabled={loading}
