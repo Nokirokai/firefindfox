@@ -2,8 +2,23 @@ import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
+import fs from 'node:fs'
 
-import siteConfiguration from './.figma/make/site.json'
+// Read .figma/make/site.json when it exists (local Figma Make environment).
+// On Vercel/GitHub that folder isn't committed, so this falls back to the
+// hardcoded defaults below, which mirror the real site.json content.
+const siteConfigPath = path.resolve(__dirname, './.figma/make/site.json')
+const defaultSiteConfiguration = {
+  title: "FirefindFox",
+  description: "FireFindFox helps users quickly locate fire safety resources and information, enhancing emergency preparedness for individuals and communities.",
+  robots: { index: false },
+  icons: { icon: "/favicon.png" },
+  openGraph: { image: "/social-image.png" },
+  accessibility: { addBypassLinks: false },
+}
+const siteConfiguration = fs.existsSync(siteConfigPath)
+  ? JSON.parse(fs.readFileSync(siteConfigPath, 'utf-8'))
+  : defaultSiteConfiguration
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
