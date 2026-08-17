@@ -86,7 +86,7 @@ export default function HomePage({
                     className="bg-[#0A0A0A] text-white text-sm px-6 py-3 hover:bg-[#737373] transition-colors"
                     style={{ fontFamily: MONO }}
                   >
-                    Sign in to browse →
+                    Browse Listings →
                   </button>
                   <button
                     onClick={() => setPage('login')}
@@ -100,8 +100,7 @@ export default function HomePage({
             </div>
           </div>
 
-          {/* Live stats receipt — only meaningful once logged in (anon RLS returns nothing) */}
-          {user && (
+          {/* Live stats receipt */}
           <div
             className="border border-[#0A0A0A] p-6 min-w-[200px] shrink-0 hidden sm:block"
             style={{ fontFamily: MONO }}
@@ -128,12 +127,11 @@ export default function HomePage({
               live · updates on load
             </div>
           </div>
-          )}
         </div>
       </section>
 
-      {/* Ticker — needs live listing data, so logged-in only */}
-      {user && listings.length > 0 && (
+      {/* Ticker */}
+      {listings.length > 0 && (
       <div
         className="border-b border-[#E5E5E5] bg-[#0A0A0A] text-white py-2 overflow-hidden"
         style={{ fontFamily: MONO }}
@@ -153,8 +151,7 @@ export default function HomePage({
       </div>
       )}
 
-      {/* Recent Listings — logged-in only; anon can't read the listings table */}
-      {user ? (
+      {/* Recent Listings */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="flex items-baseline justify-between mb-6">
           <h2 className="text-xl font-bold text-[#0A0A0A] tracking-tight" style={{ fontFamily: MONO }}>
@@ -192,32 +189,6 @@ export default function HomePage({
           </div>
         )}
       </section>
-      ) : (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div
-            className="border border-[#0A0A0A] bg-[#0A0A0A] text-white p-8 sm:p-12 text-center"
-            style={{ fontFamily: MONO }}
-          >
-            <p className="text-xs tracking-widest uppercase text-[#737373] mb-3">
-              members only
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter mb-3">
-              Listings live behind the login.
-            </h2>
-            <p className="text-sm text-[#A3A3A3] max-w-md mx-auto mb-8">
-              To keep FireFindFox campus-exclusive, only verified TSU students can
-              browse and message. Sign in with your @student.tsu.edu.ph email to see
-              what's for sale near your building.
-            </p>
-            <button
-              onClick={() => setPage('login')}
-              className="bg-white text-[#0A0A0A] text-sm px-6 py-3 hover:bg-[#E5E5E5] transition-colors"
-            >
-              Sign in to browse →
-            </button>
-          </div>
-        </section>
-      )}
 
       {/* Categories */}
       <section className="border-t border-[#E5E5E5] bg-[#F5F5F5]">
