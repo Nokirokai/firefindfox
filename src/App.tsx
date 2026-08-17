@@ -20,23 +20,27 @@ export default function App() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [openConversationId, setOpenConversationId] = useState<string | null>(null)
 
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const notif = useMessageNotifications(user?.id ?? null)
 
   const handleLoadDone = useCallback(() => setLoading(false), [])
 
+  // Home is the only page a signed-out visitor can browse — everything else
+  // needs a TSU login (and, since RLS blocks anon, has no data anyway).
+  const PUBLIC_PAGES: Page[] = ['home', 'login']
+
   const handleSetPage = useCallback((p: Page) => {
     // Guard routes that need state or auth so we never land on a blank screen.
     if ((p === 'listing' || p === 'edit-listing') && !selectedListing) p = 'browse'
-    if ((p === 'create' || p === 'profile') && !user) p = 'login'
+    if (!user && !PUBLIC_PAGES.includes(p)) p = 'login'
     if (p !== 'messages') setOpenConversationId(null)
     setPage(p)
     window.scrollTo(0, 0)
   }, [selectedListing, user])
 
-  // Signing out while on a private page should bounce home rather than stall.
+  // Signing out from a private page drops the visitor back on the landing page.
   useEffect(() => {
-    if (!user && (page === 'create' || page === 'profile')) setPage('home')
+    if (!user && !PUBLIC_PAGES.includes(page)) setPage('home')
   }, [user, page])
 
   function openNotification() {
@@ -49,12 +53,6 @@ export default function App() {
     <>
       {loading && <LoadingScreen onDone={handleLoadDone} />}
 
-      {/* Nothing is public anymore — no session, no app. */}
-      {!loading && !authLoading && !user ? (
-        <div className="min-h-screen bg-white">
-          <LoginPage setPage={handleSetPage} />
-        </div>
-      ) : (
       <div className="min-h-screen bg-white" style={{ visibility: loading ? 'hidden' : 'visible' }}>
         <Navbar page={page} setPage={handleSetPage} unreadCount={notif.unreadTotal} />
 
@@ -79,7 +77,6 @@ export default function App() {
         {page === 'profile' && <ProfilePage setPage={handleSetPage} setSelectedListing={setSelectedListing} />}
         {page === 'edit-listing' && selectedListing && <EditListingPage listing={selectedListing} setPage={handleSetPage} />}
       </div>
-      )}
 
       {!loading && user && notif.notification && page !== 'messages' && (
         <MessageToast
