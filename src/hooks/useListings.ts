@@ -171,29 +171,21 @@ export function useLiveStats() {
 }
 
 export async function bumpListing(listingId: string): Promise<string | null> {
-  const { data: listing, error: fetchErr } = await supabase
-    .from('listings')
-    .select('bump_count, last_bumped_at')
-    .eq('id', listingId)
-    .single()
+  // Cooldown + increment are enforced atomically server-side (see
+  // supabase/validation_hardening.sql) so the client timer can't be bypassed.
+  const { error } = await supabase.rpc('bump_listing', { p_listing_id: listingId })
+  if (!error) return null
+  if (error.code === 'P0001') return 'You can bump again in up to 24h.'
+  if (error.code === '42501') return 'Only the seller can bump this listing.'
+  return error.message
+}
 
-  if (fetchErr) return fetchErr.message
-
-  // Only enforce 24h cooldown after the first bump
-  if (listing && listing.bump_count > 0) {
-    const hoursSince = (Date.now() - new Date(listing.last_bumped_at).getTime()) / 1000 / 3600
-    if (hoursSince < 24) return `You can bump again in ${Math.ceil(24 - hoursSince)}h.`
-  }
-
-  const { error } = await supabase
-    .from('listings')
-    .update({
-      bump_count: (listing?.bump_count ?? 0) + 1,
-      last_bumped_at: new Date().toISOString(),
-    })
-    .eq('id', listingId)
-
-  return error?.message ?? null
+export async function markListingSold(listingId: string): Promise<string | null> {
+  // Either party in the conversation may close the deal; the RPC verifies that.
+  const { error } = await supabase.rpc('mark_listing_sold', { p_listing_id: listingId })
+  if (!error) return null
+  if (error.code === '42501') return 'Only someone in this deal can mark it sold.'
+  return error.message
 }
 
 export async function updateListingStatus(
@@ -210,7 +202,10 @@ export async function deleteListing(listingId: string): Promise<string | null> {
 }
 
 export async function saveListing(userId: string, listingId: string): Promise<void> {
-  await supabase.from('saved_listings').insert({ user_id: userId, listing_id: listingId })
+  // Ignore the unique-violation if it's already saved (idempotent).
+  await supabase
+    .from('saved_listings')
+    .upsert({ user_id: userId, listing_id: listingId }, { onConflict: 'user_id,listing_id', ignoreDuplicates: true })
 }
 
 export async function unsaveListing(userId: string, listingId: string): Promise<void> {
@@ -223,7 +218,7 @@ export async function isSaved(userId: string, listingId: string): Promise<boolea
     .select('listing_id')
     .eq('user_id', userId)
     .eq('listing_id', listingId)
-    .single()
+    .maybeSingle()
   return !!data
 }
 
