@@ -20,7 +20,7 @@ export default function App() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
   const [openConversationId, setOpenConversationId] = useState<string | null>(null)
 
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const notif = useMessageNotifications(user?.id ?? null)
 
   const handleLoadDone = useCallback(() => setLoading(false), [])
@@ -49,6 +49,12 @@ export default function App() {
     <>
       {loading && <LoadingScreen onDone={handleLoadDone} />}
 
+      {/* Nothing is public anymore — no session, no app. */}
+      {!loading && !authLoading && !user ? (
+        <div className="min-h-screen bg-white">
+          <LoginPage setPage={handleSetPage} />
+        </div>
+      ) : (
       <div className="min-h-screen bg-white" style={{ visibility: loading ? 'hidden' : 'visible' }}>
         <Navbar page={page} setPage={handleSetPage} unreadCount={notif.unreadTotal} />
 
@@ -73,8 +79,9 @@ export default function App() {
         {page === 'profile' && <ProfilePage setPage={handleSetPage} setSelectedListing={setSelectedListing} />}
         {page === 'edit-listing' && selectedListing && <EditListingPage listing={selectedListing} setPage={handleSetPage} />}
       </div>
+      )}
 
-      {!loading && notif.notification && page !== 'messages' && (
+      {!loading && user && notif.notification && page !== 'messages' && (
         <MessageToast
           notification={notif.notification}
           onOpen={openNotification}
