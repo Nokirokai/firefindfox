@@ -43,7 +43,7 @@ export async function enrichWithProfiles(rows: any[]): Promise<any[]> {
   if (!rows.length) return []
   const sellerIds = [...new Set(rows.map((r) => r.seller_id))]
   const [{ data: profiles }, ratings] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, rating_avg').in('id', sellerIds),
+    supabase.from('public_profiles').select('id, full_name').in('id', sellerIds),
     fetchSellerRatings(sellerIds),
   ])
   const profileMap: Record<string, any> = {}
@@ -159,7 +159,7 @@ export function useLiveStats() {
       const [{ count: listingCount }, { count: studentCount }, { count: dealCount }] =
         await Promise.all([
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('public_profiles').select('*', { count: 'exact', head: true }),
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'sold'),
         ])
       setStats({ listings: listingCount ?? 0, students: studentCount ?? 0, deals: dealCount ?? 0 })
@@ -234,10 +234,19 @@ export async function leaveReview(
   rating: number,
   comment: string
 ): Promise<string | null> {
+  if (reviewerId === sellerId) return 'You cannot review your own listing.'
+  if (rating < 1 || rating > 5) return 'Please choose a rating from 1 to 5.'
+
   const { error } = await supabase
     .from('reviews')
     .insert({ listing_id: listingId, reviewer_id: reviewerId, seller_id: sellerId, rating, comment })
-  if (error) return error.message
+  if (error) {
+    // Map the DB guards to friendly messages (see supabase/fix_reviews_rls.sql).
+    if (error.code === '23505') return 'You have already reviewed this deal.'
+    if (error.code === '23514') return 'That review is not allowed.'
+    if (error.code === '42501') return 'Only the buyer of a completed deal can leave a review.'
+    return error.message
+  }
 
   // Recalculate seller's rating_avg
   const { data: reviews } = await supabase
