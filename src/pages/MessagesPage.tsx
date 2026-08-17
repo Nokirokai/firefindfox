@@ -3,7 +3,7 @@ import { Send, Lock, ChevronLeft, BadgeCheck, Star } from 'lucide-react'
 import { MONO } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import { useConversations, useMessages, sendMessage } from '../hooks/useMessages'
-import { updateListingStatus, leaveReview } from '../hooks/useListings'
+import { markListingSold, leaveReview } from '../hooks/useListings'
 import { supabase } from '../lib/supabase'
 
 export default function MessagesPage({
@@ -98,9 +98,11 @@ export default function MessagesPage({
   }
 
   async function handleSend() {
-    if (!user || !activeId || !draft.trim()) return
-    setSending(true)
+    if (!user || !activeId) return
     const body = draft.trim()
+    if (!body) return
+    if (body.length > 2000) { setSendError('Message is too long (2000 characters max).'); return }
+    setSending(true)
     setDraft('')
     const err = await sendMessage(activeId, user.id, body)
     setSending(false)
@@ -112,13 +114,15 @@ export default function MessagesPage({
   async function handleDealDone() {
     if (!activeConvo) return
     setDealLoading(true)
-    await updateListingStatus(activeConvo.listing_id, 'sold')
-    setDealsCompleted((prev) => new Set(prev).add(activeConvo.id))
+    const err = await markListingSold(activeConvo.listing_id)
     setDealLoading(false)
+    if (err) { setReviewError(err); return }
+    setDealsCompleted((prev) => new Set(prev).add(activeConvo.id))
   }
 
   async function handleLeaveReview() {
     if (!activeConvo || !user) return
+    if (reviewComment.trim().length > 1000) { setReviewError('Note is too long (1000 characters max).'); return }
     setReviewLoading(true)
     setReviewError('')
     const err = await leaveReview(
@@ -251,6 +255,7 @@ export default function MessagesPage({
                     type="text"
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
+                    maxLength={1000}
                     placeholder="Optional note (e.g. fast seller, item as described)"
                     className="w-full text-xs border border-[#E5E5E5] bg-white px-3 py-2 text-[#0A0A0A] placeholder:text-[#737373] focus:outline-none focus:border-[#0A0A0A] mb-2"
                   />
@@ -289,6 +294,7 @@ export default function MessagesPage({
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    maxLength={2000}
                     placeholder="Type a message..."
                     className="flex-1 min-w-0 px-4 py-3 text-sm text-[#0A0A0A] placeholder:text-[#737373] focus:outline-none"
                   />
