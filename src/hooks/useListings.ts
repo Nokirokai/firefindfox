@@ -26,7 +26,12 @@ export async function fetchSellerRatings(
     .from('reviews')
     .select('seller_id, rating')
     .in('seller_id', ids)
-  if (error) { console.error('ratings fetch:', error.message); return out }
+  if (error) {
+    // e.g. anon lacks SELECT on reviews before the grant is applied — degrade
+    // to "no ratings" rather than logging an error and breaking the page.
+    console.warn('ratings unavailable:', error.message)
+    return out
+  }
 
   const buckets: Record<string, number[]> = {}
   for (const r of data ?? []) {
