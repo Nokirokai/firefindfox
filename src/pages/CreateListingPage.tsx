@@ -103,7 +103,7 @@ export default function CreateListingPage({ setPage }: { setPage: (p: Page) => v
 
           <div>
             <label className="block text-xs text-[#737373] mb-1" style={{ fontFamily: MONO }}>TITLE *</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            <input type="text" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Casio fx-991EX Scientific Calculator"
               className="w-full border border-[#E5E5E5] bg-[#F5F5F5] px-4 py-2.5 text-sm text-[#0A0A0A] placeholder:text-[#737373] focus:outline-none focus:border-[#0A0A0A]" />
           </div>
