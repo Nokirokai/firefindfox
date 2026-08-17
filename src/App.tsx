@@ -25,9 +25,9 @@ export default function App() {
 
   const handleLoadDone = useCallback(() => setLoading(false), [])
 
-  // Home is the only page a signed-out visitor can browse — everything else
-  // needs a TSU login (and, since RLS blocks anon, has no data anyway).
-  const PUBLIC_PAGES: Page[] = ['home', 'login']
+  // Signed-out visitors can browse the storefront (home, listings, detail);
+  // posting, messaging, saving, and profiles still require a TSU login.
+  const PUBLIC_PAGES: Page[] = ['home', 'login', 'browse', 'listing']
 
   const handleSetPage = useCallback((p: Page) => {
     // Guard routes that need state or auth so we never land on a blank screen.
