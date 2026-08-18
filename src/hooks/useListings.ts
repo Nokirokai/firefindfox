@@ -161,13 +161,22 @@ export function useLiveStats() {
 
   useEffect(() => {
     async function fetch() {
-      const [{ count: listingCount }, { count: studentCount }, { count: dealCount }] =
-        await Promise.all([
-          supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-          supabase.from('public_profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'sold'),
-        ])
-      setStats({ listings: listingCount ?? 0, students: studentCount ?? 0, deals: dealCount ?? 0 })
+      // A definer RPC returns real counts even to guests, who can't see sold
+      // listings (or every profile) through row-level policies.
+      const { data, error } = await supabase.rpc('get_home_stats').single<{
+        listings: number
+        students: number
+        deals: number
+      }>()
+      if (error || !data) {
+        console.warn('home stats unavailable:', error?.message)
+        return
+      }
+      setStats({
+        listings: Number(data.listings) || 0,
+        students: Number(data.students) || 0,
+        deals: Number(data.deals) || 0,
+      })
     }
     fetch()
   }, [])
